@@ -4,6 +4,10 @@ gitea:
     className: nginx
     annotations:
       cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/configuration-snippet: |
+        if ($request_uri = "/") {
+          return 301 /new/landing;
+        }
     hosts:
       - host: &host git.pouria.sh
         paths:
