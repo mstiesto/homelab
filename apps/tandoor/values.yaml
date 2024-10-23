@@ -39,6 +39,8 @@ tandoor:
     # @default -- See [values.yaml](./values.yaml)
     main:
       enabled: true
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt-prod
       hosts:
         - host: &host tandoor.pouria.sh
           paths:
