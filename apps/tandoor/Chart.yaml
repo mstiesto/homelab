@@ -1,7 +1,10 @@
 apiVersion: v2
 name: tandoor
-version: 0.9.7
+version: 0.0.0
 dependencies:
-  - name: tandoor
-    version: 0.9.7
-    repository: https://charts.gabe565.com
+  - name: app-template
+    version: 2.6.0
+    repository: https://bjw-s.github.io/helm-charts
+  - name: postgres
+    version: 14.0.5
+    repository: https://charts.bitnami.com/bitnami
