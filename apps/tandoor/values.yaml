@@ -4,7 +4,7 @@ app-template:
       containers:
         main:
           image:
-            repository: ghcr.io/tandoorrecipes/recipes
+            repository: vabene1111/recipes
             tag: 1.5.20
           env:
             TZ: Europe/Berlin
