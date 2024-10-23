@@ -26,6 +26,8 @@ app-template:
         - host: &host tandoor.pouria.sh
           paths:
             - path: /
+              service:
+                port: 8080
             - path: /static
               service:
                 port: 80
