@@ -39,16 +39,16 @@ tandoor:
     # @default -- See [values.yaml](./values.yaml)
     main:
       enabled: true
-        hosts:
-          - host: &host tandoor.pouria.sh
-            paths:
-              - path: /
-              - path: /static
-                service:
-                  port: 80
-              - path: /media
-                service:
-                  port: 80
+      hosts:
+        - host: &host tandoor.pouria.sh
+          paths:
+            - path: /
+            - path: /static
+              service:
+                port: 80
+            - path: /media
+              service:
+                port: 80
       tls:
         - hosts:
             - *host
