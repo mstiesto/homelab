@@ -14,7 +14,8 @@ app-template:
       ports:
         http:
           port: 8080
-          protocol: HTTP
+        static:
+          port: 80
   ingress:
     main:
       enabled: true
@@ -25,14 +26,39 @@ app-template:
         - host: &host tandoor.pouria.sh
           paths:
             - path: /
-              pathType: Prefix
+            - path: /static
               service:
-                name: main
-                port: http
+                port: 80
+            - path: /media
+              service:
+                port: 80
       tls:
         - hosts:
             - *host
           secretName: tandoor-tls-certificate
+
+  persistence:
+    config:
+      enabled: false
+      retain: true
+      # storageClass: ""
+      # accessMode: ReadWriteOnce
+      # size: 1Gi
+    media:
+      enabled: false
+      mountPath: /opt/recipes/mediafiles
+      retain: true
+      # storageClass: ""
+      # accessMode: ReadWriteOnce
+      # size: 1Gi
+    static:
+      enabled: true
+      type: emptyDir
+      mountPath: /opt/recipes/staticfiles
+    django-js-reverse:
+      enabled: true
+      type: emptyDir
+      mountPath: /opt/recipes/cookbook/static/django_js_reverse
 
 postgresql:
   enabled: true
