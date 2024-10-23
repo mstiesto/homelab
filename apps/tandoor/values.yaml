@@ -26,13 +26,17 @@ app-template:
         - host: &host tandoor.pouria.sh
           paths:
             - path: /
+              pathType: Prefix
               service:
+                name: main
                 port: 8080
             - path: /static
               service:
+                name: main
                 port: 80
             - path: /media
               service:
+                name: main
                 port: 80
       tls:
         - hosts:
