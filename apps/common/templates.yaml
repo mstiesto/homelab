@@ -1,0 +1,7 @@
+templates:
+  general:
+    missingFileHandler: Warn
+    values:
+      - './values/{{`{{ .Release.Name }}`}}/values.yaml'
+    secrets:
+      - './values/{{`{{ .Release.Name }}`}}/secrets.yaml'
