@@ -1,0 +1,62 @@
+bases:
+  - ./common/environments.yaml
+  - ./common/templates.yaml
+  - ./common/repositories.yaml
+releases:
+  - name: freqtrade
+    namespace: freqtrade
+    chart: ./charts/general
+    inherit:
+      - template: general
+  - name: gitea
+    namespace: gitea
+    chart: gitea-charts/gitea
+    inherit:
+      - template: general
+  - name: woodpecker
+    namespace: woodpecker
+    chart: woodpecker-charts/woodpecker
+    inherit:
+      - template: general
+  # - name: volsync
+  #   namespace: volsync-system
+  #   chart: volsync/volsync
+  - name: kured
+    namespace: kured
+    chart: kured/kured
+    inherit:
+      - template: general
+  - name: cloudflared
+    namespace: cloudflared
+    chart: bjw-s/app-template
+    version: 3.6.1
+    inherit:
+      - template: general
+  - name: external-dns
+    namespace: external-dns
+    chart: external-dns/external-dns
+    version: 1.14.3
+    inherit:
+      - template: general
+  - name: ingress-nginx
+    namespace: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    version: 4.11.2
+    inherit:
+      - template: general
+  - name: cert-manager
+    namespace: cert-manager
+    chart: cert-manager/cert-manager
+    version: v1.15.3
+    inherit:
+      - template: general
+    hooks:
+      - events: ["presync"]
+        showlogs: true
+        command: "kubectl"
+        args:
+          - "apply"
+          - "-f"
+          - "./values/cert-manager/templates/clusterissuer.yaml"
+          - "--context"
+          - "{{`{{.Environment.KubeContext}}`}}"

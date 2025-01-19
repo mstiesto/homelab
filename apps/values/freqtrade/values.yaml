@@ -1,0 +1,291 @@
+initContainer:
+  enabled: true
+  image:
+    repository: alpine/curl
+    tag: latest
+  command: 
+    - /bin/sh
+    - -c
+    - |
+      # Define variables
+      RELEASE_TAG="15.1.314"
+      DOWNLOAD_URL="https://github.com/iterativv/NostalgiaForInfinity/archive/refs/tags/v${RELEASE_TAG}.zip"
+      PYTHON_FILE_PATH="NostalgiaForInfinity-${RELEASE_TAG}/NostalgiaForInfinityX5.py"
+      DESTINATION="/freqtrade/user_data/strategies/NostalgiaForInfinityX5.py"
+
+      # Download the release zip
+      echo Downloading Tag ${RELEASE_TAG}.
+      curl -L -o source_code.zip "${DOWNLOAD_URL}"
+
+      # Unzip the specific file
+      echo unzipping tag ${RELEASE_TAG}.
+      unzip source_code.zip -d /tmp
+
+      # Move the file to the desired destination
+      mv "/tmp/${PYTHON_FILE_PATH}" "${DESTINATION}"
+
+
+      echo Downloaded tag ${RELEASE_TAG} successfully.
+
+      # Clean up
+      echo cleaning up ...
+      rm source_code.zip
+    
+
+  volumeMounts: 
+  - name: strategy
+    mountPath: "/freqtrade/user_data/strategies"
+    readOnly: false
+
+
+
+image:
+  repository: "freqtradeorg/freqtrade"
+  tag: "stable"
+  # command:
+  #   - tail
+  # args:
+  #   - -f
+  #   - /dev/null
+args:
+  - trade
+  - --db-url
+  - sqlite:////freqtrade/user_data/data/tradesv3.sqlite
+  - --log-file
+  - /freqtrade/user_data/data/logs/freqtrade.log
+  
+nameOverride: "freqtrade"
+
+service:
+  type: ClusterIP
+  port: 8989
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: &host freqtrade.pouria.sh
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - *host
+      secretName: freqtrade-tls-certificate
+
+persistence:
+  enabled: true
+  storageClassName: standard-rwo
+  accessModes:
+    - ReadWriteOnce
+
+  resources:
+    requests:
+      storage: 1Gi
+
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: freqtrade
+      defaultMode: 0644
+    - name: strategy
+      emptyDir: {}
+      defaultMode: 0644
+    - name: config
+      configMap:
+        name: freqtrade
+
+  volumeMounts: 
+  - name: data
+    mountPath: "/freqtrade/user_data/data"
+    readOnly: false
+  - name: strategy
+    mountPath: "/freqtrade/user_data/strategies"
+    readOnly: false
+  - name: config
+    mountPath: "/freqtrade/user_data/config.json"
+    subPath: config.json
+    readOnly: false
+
+podSecurityContext:
+  fsGroup: 1000
+
+nodeSelector:
+  kubernetes.io/hostname: metal4
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+configMap:
+  enabled: true
+  data:
+    config.json: |
+      {
+        "trading_mode": "spot",
+        "dataformat_ohlcv": "feather",
+        "dataformat_trades": "feather",
+        "pairlists": [
+          {
+            "method": "VolumePairList",
+            "number_assets": 80,
+            "sort_key": "quoteVolume",
+            "refresh_period": 1800
+          },
+          {
+            "method": "FullTradesFilter"
+          },
+          {
+            "method": "AgeFilter",
+            "min_days_listed": 4
+          },
+          {
+            "method": "PriceFilter",
+            "low_price_ratio": 0.003
+          },
+          {
+            "method": "SpreadFilter",
+            "max_spread_ratio": 0.008
+          },
+          {
+            "method": "VolumePairList",
+            "number_assets": 60,
+            "sort_key": "quoteVolume"
+          }
+        ],
+        "exchange": {
+          "pair_blacklist": [
+            // Exchange Tokens
+            "(MX)/.*",
+            // Leverage tokens
+            ".*(3L|3S|5L|5S)/.*",
+            // Fiat
+            "(AUD|BRZ|CAD|CHF|EUR|GBP|HKD|IDRT|JPY|NGN|RUB|SGD|TRY|UAH|USD|ZAR)/.*",
+            // Stable tokens
+            "(BUSD|CUSD|CUSDT|DAI|PAXG|SUSD|TUSD|USDC|USDN|USDP|USDT|VAI|UST|USDD|USDJ|USTC|AUSD|FEI)/.*",
+            // FAN Tokens
+            "(ACM|AFA|ALA|ALL|ALPINE|APL|ASR|ATM|BAR|CAI|CITY|FOR|GAL|GOZ|IBFK|JUV|LEG|LOCK-1|NAVI|NMR|NOV|PFL|PSG|ROUSH|STV|TH|TRA|UCH|UFC|YBO|ARG)/.*",
+            // Other Coins
+            "(AMPL|1EARTH|ILA|BOBA|CWAR|MEM|OMG|XYM|CARR|SGB|SKEY|KLV|KOK|DMTR|CPOOL|KRL|MLS|SB|CEL|WWY|PTS|TORN|BANK|SYLO|VR|DOME|LUNATOKEN|NFTY|EPK|ZBC|AZY|PLATO|ACA|XCN|FTT|SRM|BVT|SWP|YFII|XWG|PIAS|KICKS|TIME|WEMIX|ANC|MIR|CELT|ZKT|GRV|SMART|RLY|REP|DRGN|WXT|ROSN|KYL|FRR|LEMN|NEBL|AUTO|UNB|CARE|VGX|EDG|LOVE|SHFT|ASTRA|SUKU|CHO|LOOM|BTS|SVT|ORDI|SWRV|DAPPT|BOB|ID|ZPAY|PCX|PEPE2|SIN|NOM|WOM|NULS|KOL|RED|PRIMAL|ACN|OMN|SWINGBY|MOOV|DPX|SOS|TOMO|NXD|KAT|CGG|PEEL|SATS|ORDI|BERRY|SOLS|FORE|LEO|JAM|BETS|BOTTO|SEAT|XFI|GAGA|CLFI|MAP|HAN|LIF3|STRUMP|BVM|PINKNINJA|HANK|ANON|SPCT|LUCA|PPC|ABEL|WAVES|WNXM|QTK|ZEC|ELF|ARK|MDX|BETA|KP3R|AKRO|AMB|BOND|FIRO|OAX|EPX|OOKI|GME|TRUMP|CAVADA|SQUAD|STC|TIN|TRUMP|MAGA|MAGAETH|TREMP|BODEN|STRUMP|TOOKER|TMANIA|BOBBY|BABYTRUMP|PTTRUMP|DTI|TRUMPIE|MAGAPEPE|PEPEMAGA|HARD|MBL|GAL|LFT|DOCK|POLS|DJT|FOG|FIGHT.*|TXA|CTXC|JASMY|BAL|SNT|CREAM|REN|LINA|REEF|UNFI|IRIS|CVP|PXT|MSN|NFM|OCB|MTMS|SBCC|USBT|SAVM|RFD|DSLA|HAKA|KMA|ALT|KNFT|ZERO|APES|BITBOARD|UNM|IRON|LB|EAI|SFT|HSF|CUN|GOKU|BABYNEIROBSC|FINEETH|ZENIX|CAT1|GFF|AIDEEPGAMES|HK|PROTON|INFI|BFC|STFY|MORPHA|KDAO|WRAT|STARD|WIN1|DPAW|PNS|MAYHEM|KISHKA|ZST|LAG|WIFCEO|KITEAI|KIM|POWERAI|UB|MRST|FAN|SPOL|MTPE|NRS|3KM|SMARTAI|GFT|KEY|KING|INFRA|EML|BLZ|DAR|TROY|STMX|FTM)/.*"
+          ],
+          "name": "",
+          "key": "REDACTED",
+          "password": "REDACTED",
+          "secret": "REDACTED",
+          "pair_whitelist": []
+        },
+        "dry_run": true,
+        "dry_run_wallet": 1000,
+        "grinding_enable": true,
+        "max_open_trades": 6,
+        "stake_currency": "USDT",
+        "stake_amount": "unlimited",
+        "tradable_balance_ratio": 0.99,
+        "fiat_display_currency": "USD",
+        "force_entry_enable": true,
+        "initial_state": "running",
+        "timeframe": "5m",
+        "unfilledtimeout": {
+          "entry": 20,
+          "exit": 20,
+          "exit_timeout_count": 0,
+          "unit": "minutes"
+        },
+        "order_types": {
+          "entry": "limit",
+          "exit": "limit",
+          "emergency_exit": "limit",
+          "force_entry": "limit",
+          "force_exit": "limit",
+          "stoploss": "limit",
+          "stoploss_on_exchange": false,
+          "stoploss_on_exchange_interval": 60,
+          "stoploss_on_exchange_limit_ratio": 0.99
+        },
+        "entry_pricing": {
+          "price_side": "other",
+          "use_order_book": true,
+          "order_book_top": 1,
+          "price_last_balance": 0,
+          "check_depth_of_market": {
+            "enabled": false,
+            "bids_to_ask_delta": 1
+          }
+        },
+        "exit_pricing": {
+          "price_side": "other",
+          "use_order_book": true,
+          "order_book_top": 1,
+          "price_last_balance": 0
+        },
+        "internals": {
+          "process_throttle_secs": 5
+        },
+        "bot_name": "AnotherPouria",
+        "cancel_open_orders_on_exit": false,
+        "telegram": {
+          "enabled": true,
+          "token": "REDACTED",
+          "chat_id": "REDACTED",
+          "reload": true,
+          "keyboard": [
+            [
+              "/daily",
+              "/stats",
+              "/balance",
+              "/profit"
+            ],
+            [
+              "/status table",
+              "/performance"
+            ],
+            [
+              "/reload_config",
+              "/count",
+              "/logs"
+            ]
+          ],
+          "notification_settings": {
+            "status": "silent",
+            "protection_trigger_global": "on",
+            "warning": "on",
+            "startup": "off",
+            "entry": "silent",
+            "entry_fill": "on",
+            "entry_cancel": "on",
+            "exit_cancel": "on",
+            "exit_fill": "on",
+            "exit": {
+              "roi": "silent",
+              "emergency_exit": "silent",
+              "force_exit": "silent",
+              "exit_signal": "silent",
+              "trailing_stop_loss": "silent",
+              "stop_loss": "silent",
+              "stoploss_on_exchange": "silent",
+              "custom_exit": "silent"
+            },
+            "strategy_msg": "silent"
+          },
+          "balance_dust_level": 0.01
+        },
+        "api_server": {
+          "enabled": true,
+          "listen_ip_address": "0.0.0.0",
+          "listen_port": 8989,
+          "verbosity": "error",
+          "enable_openapi": false,
+          "jwt_secret_key": "",
+          "CORS_origins": [
+            ""
+          ],
+          "username": "user",
+          "password": "REDACTED"
+        },
+        "strategy": "NostalgiaForInfinityX5"
+      }

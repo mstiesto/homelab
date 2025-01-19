@@ -1,0 +1,17 @@
+repositories:
+  - name: gitea-charts
+    url: https://dl.gitea.com/charts
+  - name: woodpecker-charts
+    url: https://woodpecker-ci.org
+  - name: volsync
+    url: https://backube.github.io/helm-charts
+  - name: kured
+    url: https://kubereboot.github.io/charts
+  - name: bjw-s
+    url: https://bjw-s.github.io/helm-charts
+  - name: external-dns
+    url: https://kubernetes-sigs.github.io/external-dns
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: cert-manager
+    url: https://charts.jetstack.io

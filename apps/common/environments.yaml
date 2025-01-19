@@ -1,0 +1,3 @@
+environments:
+  homelab:
+    kubeContext: homelab
